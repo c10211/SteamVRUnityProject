@@ -20,7 +20,8 @@ public class PlayVideo : MonoBehaviour
     private VideoPlayer videoPlayer = null;
     private MeshRenderer meshRenderer = null;
 
-    private readonly string shaderUsed = "Universal Render Pipeline/Unlit";
+    //private readonly string shaderUsed = "Universal Render Pipeline/Unlit";
+    private readonly string shaderUsed = "HDRP/Unlit";
 
     private Material offMaterial = null;
     private int index = 0;
@@ -110,6 +111,19 @@ public class PlayVideo : MonoBehaviour
             videoPlayer.Play();
     }
 
+    public void ToggleSwitchStop()
+    {
+        if (index == videoClips.Count - 1)
+        {
+            index = 0;
+            Stop();
+        }
+        else
+        {
+            NextClip();
+        }
+    }
+
     public void SetPlay(bool value)
     {
         if (value)
@@ -131,6 +145,7 @@ public class PlayVideo : MonoBehaviour
     {
             
         if (TryGetComponent(out VideoPlayer videoPlayer))
-            videoPlayer.targetMaterialProperty = "_BaseMap";
+            videoPlayer.targetMaterialProperty = "_UnlitColorMap";
+            //videoPlayer.targetMaterialProperty = "_BaseMap";
     }
 }

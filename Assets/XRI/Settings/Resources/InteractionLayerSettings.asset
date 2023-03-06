@@ -15,13 +15,13 @@ MonoBehaviour:
   m_LayerNames:
   - Default
   - TransparentFX
-  - 
-  - 
+  - Card
+  - Display Model
   - Water
   - UI
-  - 
-  - 
-  - 
+  - Clipboard
+  - Ruler
+  - Raycasts
   - 
   - 
   - 

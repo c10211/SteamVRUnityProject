@@ -3,17 +3,19 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 2
-  tags: []
+  tags:
+  - Box
+  - lit
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - Display Model
   - Water
   - UI
-  - 
-  - 
-  - 
+  - Clipboard
+  - Ruler
+  - Raycasts
   - 
   - 
   - 

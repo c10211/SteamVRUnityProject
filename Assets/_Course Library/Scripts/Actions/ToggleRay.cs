@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
 
@@ -37,8 +38,15 @@ public class ToggleRay : MonoBehaviour
 
     public void DeactivateRay()
     {
+        StartCoroutine(DeactivateDelay());
+    }
+
+    private IEnumerator DeactivateDelay()
+    {
+        yield return new WaitForSeconds(0.1f);
         if (isSwitched)
             SwitchInteractors(false);
+        yield return null;
     }
 
     private bool TouchingObject()
