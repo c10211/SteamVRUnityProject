@@ -8,6 +8,9 @@ public class Fadeout : MonoBehaviour
 
     public float time = 0.5f;
 
+    public readonly bool FADE_DIRECTION_OUT = true;
+    public readonly bool FADE_DIRECTION_IN = false;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -40,11 +43,11 @@ public class Fadeout : MonoBehaviour
 
     private IEnumerator FadeOutIn()
     {
-        yield return Fade(true);
+        yield return Fade(FADE_DIRECTION_OUT);
 
         yield return new WaitForSeconds(0.5f);
 
-        yield return Fade(false);
+        yield return Fade(FADE_DIRECTION_IN);
     }
 
     public IEnumerator Fade(bool direction)

@@ -6,6 +6,8 @@ TagManager:
   tags:
   - Box
   - lit
+  - Diegetic
+  - Extradiegetic
   layers:
   - Default
   - TransparentFX
@@ -16,9 +18,9 @@ TagManager:
   - Clipboard
   - Ruler
   - Raycasts
-  - 
-  - 
-  - 
+  - Interactable
+  - Non-Interactable
+  - Hats
   - 
   - 
   - 
@@ -42,4 +44,7 @@ TagManager:
   m_SortingLayers:
   - name: Default
     uniqueID: 0
+    locked: 0
+  - name: UI
+    uniqueID: 2481163993
     locked: 0
