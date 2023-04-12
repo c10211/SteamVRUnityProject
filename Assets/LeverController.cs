@@ -5,20 +5,23 @@ using UnityEngine;
 public class LeverController : MenuItem
 {
     public int selectedLevel;
-    private IEnumerator Lights;
+    private Coroutine Lights;
     public GameObject[] LightBulbs;
 
     // Start is called before the first frame update
     void Start()
     {
         base.Start();
-        Lights = SelectLight();
+        //Lights = SelectLight();
+        gameManager = GameObject.Find("Game Manager").GetComponent<GameManager>();
     }
 
-    // Update is called once per frame
-    void Update()
+    private void Awake()
     {
+        foreach (GameObject light in LightBulbs)
+            light.GetComponent<LevelSelectDisplay>().SetOn(false);
 
+        setActiveLight(gameManager.levelSelect);
     }
 
     public void LogHover()
@@ -29,7 +32,7 @@ public class LeverController : MenuItem
     public void StartLightSelect()
     {
         Debug.Log("Starting lightshow");
-        StartCoroutine(Lights);
+        Lights = StartCoroutine(SelectLight());
     }
 
     public void OnRelease()
@@ -70,7 +73,9 @@ public class LeverController : MenuItem
     IEnumerator SetPosition(int position)
     {
         yield return null;
+        Quaternion[] positions = { new Quaternion(0.216439605f, 0f, 0f, 0.976296067f), new Quaternion(0f, 0f, 0f, 1f), new Quaternion(-0.216439515f, 0f, 0f, 0.976296067f) };
         transform.localPosition = Vector3.zero;
+        transform.localRotation = positions[position];
         yield return null;
     }
 

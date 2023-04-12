@@ -65,7 +65,7 @@ public class Fadeout : MonoBehaviour
         {
             gameObject.GetComponent<MeshRenderer>().material.color = new Color(0f, 0f, 0f, Mathf.Lerp(start, end, t * (1 / time)));
             t += Time.deltaTime;
-            yield return new WaitForEndOfFrame();
+            yield return null;
         }
         Debug.Log("Fade ready");
         yield return null;

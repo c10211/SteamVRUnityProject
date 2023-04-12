@@ -8,6 +8,13 @@ TagManager:
   - lit
   - Diegetic
   - Extradiegetic
+  - UI
+  - Interactable
+  - Noninteractable
+  - Ingredient
+  - Ingredient Pile
+  - In-Game Diegetic
+  - In-Game Extradiegetic
   layers:
   - Default
   - TransparentFX
@@ -21,7 +28,7 @@ TagManager:
   - Interactable
   - Non-Interactable
   - Hats
-  - 
+  - PostProcessing
   - 
   - 
   - 

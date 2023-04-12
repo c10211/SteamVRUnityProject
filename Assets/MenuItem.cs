@@ -15,13 +15,6 @@ public class MenuItem : MonoBehaviour
     {
         gameManager = GameObject.Find("Game Manager").GetComponent<GameManager>();
         startPosition = gameObject.transform.position;
-        if (gameObject.name == "Card Reader")
-            StartCoroutine(CheckForCard());
-    }
-
-    private IEnumerator CheckForCard()
-    {
-        yield return null;
     }
 
     // Update is called once per frame

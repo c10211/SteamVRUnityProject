@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class Logger : MonoBehaviour
 {
+    public bool halp;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -16,7 +18,7 @@ public class Logger : MonoBehaviour
         
     }
 
-    public void LogSomething(string toLog, bool wat)
+    public void LogSomething(string toLog)
     {
         Debug.Log(toLog);
     }

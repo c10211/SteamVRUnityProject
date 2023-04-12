@@ -43,6 +43,7 @@ public class ExitDoor : MenuItem
             handle1.transform.position = handlePos;
             handle2.SetActive(false);
             handle1.transform.localPosition = new Vector3(-0.074f, 0.909f, 0.271f);
+            GetComponent<AudioSource>().Play();
         }
         else
         {

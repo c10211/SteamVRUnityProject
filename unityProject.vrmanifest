@@ -1,0 +1,16 @@
+{
+  "source": "Unity",
+  "applications": [
+    {
+      "app_key": "application.generated.unity.josephjulianmuscatthesis2023.exe",
+      "launch_type": "url",
+      "url": "steam://launch/",
+      "action_manifest_path": "D:\\UnityProjects\\SteamVRUnityProject\\Assets\\StreamingAssets\\SteamVR\\actions.json",
+      "strings": {
+        "en_us": {
+          "name": "Joseph Julian Muscat Thesis 2023 [Testing]"
+        }
+      }
+    }
+  ]
+}

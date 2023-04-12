@@ -14,7 +14,12 @@ public class CardMenuItem : MenuItem
     void Update()
     {
         if (transform.position.y <= 0.4f)
-            transform.position = startPosition;
+            MoveToStartPostition();
+    }
+
+    public void MoveToStartPostition()
+    {
+        transform.position = startPosition;
     }
 
     public void CheckPosition()
@@ -25,9 +30,13 @@ public class CardMenuItem : MenuItem
     private IEnumerator StartGameIfInCorrectPosition()
     {
         yield return new WaitForSeconds(0.1f);
-        if (transform.position == GameObject.Find("Card Attach").transform.position)
+        try
         {
-            gameManager.StartGame();
-        }
+            if (transform.position == GameObject.Find("Card Attach").transform.position)
+            {
+                gameObject.GetComponent<AudioSource>().Play();
+                gameManager.StartGame();
+            }
+        } catch { }
     }
 }
