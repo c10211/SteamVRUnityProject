@@ -1,5 +1,7 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 
 public class LevelManager : MonoBehaviour
@@ -8,12 +10,13 @@ public class LevelManager : MonoBehaviour
     float defaultTimeScale, slowTimeScale, defaultFixedDeltaTime, currentTimeScale;
     [SerializeField]
     private GameObject[] IngredientPiles, DiegeticGameItems, ExtradiegeticGameItems;
+    public GameObject[] Confettis;
     int lev, ord;
     private bool PowerupPrimed, PowerupActive, GamePaused;
     GameManager gameManager;
 
     Coroutine gameTimer;
-
+    public TextMeshProUGUI MenuText;
 
     public float PowerupTimeInSeconds = 30f;
     PowerupScreen screen;
@@ -40,6 +43,11 @@ public class LevelManager : MonoBehaviour
 
         foreach (GameObject o in ExtradiegeticGameItems)
             o.SetActive(false);
+
+        ord = 0;
+
+        // Set sandwich list
+        SetSandwichLists();
     }
 
     // Update is called once per frame
@@ -62,22 +70,55 @@ public class LevelManager : MonoBehaviour
         foreach (GameObject o in ExtradiegeticGameItems)
             o.SetActive(!gameManager.DiegeticActive);
 
+        ord = 0;
+
         yield return new WaitForSeconds(1.5f);
 
         Debug.Log("Starting Timer");
         gameTimer = StartCoroutine(LevelTimer(10f));
+
+        MenuText.text = ordersByLevel[lev][ord].ingredients;
+    }
+
+    IEnumerator LevelCompleted()
+    {
+        // Launch confetti
+        foreach (GameObject go in Confettis) go.GetComponent<ParticleSystem>().Play();
+
+        yield return new WaitForSecondsRealtime(3f);
+        
+        StopCoroutine(gameTimer);
+
+        LevelStop();
+    }
+
+    public void LevelStop()
+    {
+        foreach (GameObject o in IngredientPiles)
+            o.SetActive(false);
+
+        foreach (GameObject o in DiegeticGameItems)
+            o.SetActive(false);
+
+        foreach (GameObject o in ExtradiegeticGameItems)
+            o.SetActive(false);
+
+        StopCoroutine(gameTimer);
     }
 
     public bool checkIngredients(string current)
     {
         Debug.Log("Checking Ingredients");
+        Debug.Log("Level = " + lev + ", order number = " + ord + "\n" +
+            "Requirements = " + ordersByLevel[lev][ord].ingredients + "\n" +
+            "Current = " + current);
+
         bool corr = current == ordersByLevel[lev][ord].ingredients;
 
         // Start separate coroutine
         if (corr)
         {
-            // Increment order counter
-            ord++;
+            Debug.Log("Burger is GOOD!!!");
 
             // Check if more orders exist
             bool more = ord > ordersByLevel.Length - 1;
@@ -85,13 +126,35 @@ public class LevelManager : MonoBehaviour
             // Fireworks?
 
             // End game?
-            if (!more)
+            /*if (!more)
             {
                 gameManager.EndGame();
-            }
+            }*/
         }
 
+        Debug.Log("Ingredients Checked");
         return corr;
+    }
+
+    public void NextOrder()
+    {
+        ord++;
+
+        Debug.Log("Going to next order, number " + ord);
+
+        try
+        {
+            if (ordersByLevel[lev][ord] != null)
+            {
+                Debug.Log("New ingredients = " + ordersByLevel[lev][ord].ingredients);
+                MenuText.text = ordersByLevel[lev][ord].ingredients;
+            }
+        }
+        catch
+        {
+            Debug.Log("Level complete!");
+            StartCoroutine(LevelCompleted());
+        }
     }
 
     public void SlowTimePowerup()
@@ -242,10 +305,46 @@ public class LevelManager : MonoBehaviour
             yield return new WaitForSeconds(1f);
         }
     }
+
+    private void SetSandwichLists()
+    {
+        ordersByLevel[0] = new Order[] {
+            new Order("Bottom Bun, Ham, Cheese, Lettuce, Tomato, Top Bun"),
+            new Order("Bottom Bun, Egg, Cheese, Onion, Top Bun"),
+            new Order("Bottom Bun, Ham, Cheese, Tomato, Onion, Top Bun")
+        };
+        ordersByLevel[1] = new Order[]
+        {
+            new Order("Bottom Bun, Ham, Cheese, Lettuce, Tomato, Onion, Pickle, Onion, Top Bun"),
+            new Order("Bottom Bun, Ham, Cheese, Tomato, Onion, Ham, Cheese, Tomato, Onion, Top Bun"),
+            new Order("Bottom Bun, Egg, Cheese, Tomato, Onion, Egg, Cheese, Tomato, Onion, Top Bun"),
+            new Order("Bottom Bun, Ham, Cheese, Lettuce, Tomato, Cheese, Pickle, Tomato, Top Bun")
+        };
+        ordersByLevel[2] = new Order[]
+        {
+            new Order("Bottom Bun, Ham, Onion, Cheese, Lettuce, Tomato, Ham, Onion, Pickle, Cheese, Lettuce, Tomato, Ham, Cheese, Onion, Tomato, Lettuce, Top Bun"),
+            new Order("Bottom Bun, Cheese, Lettuce, Tomato, Egg, Cheese, Onion, Tomato, Lettuce, Egg, Onion, Cheese, Lettuce, Tomato, Egg, Onion, Tomato, Top Bun"),
+            new Order("Bottom Bun, Ham, Tomato, Cheese, Lettuce, Ham, Onion, Cheese, Tomato, Onion, Ham, Lettuce, Cheese, Onion, Tomato, Lettuce, Ham, Top Bun"),
+            new Order("Bottom Bun, Cheese, Tomato, Egg, Onion, Cheese, Tomato, Lettuce, Egg, Cheese, Onion, Tomato, Lettuce, Egg, Tomato, Onion, Lettuce, Top Bun"),
+            new Order("Bottom Bun, Lettuce, Ham, Cheese, Tomato, Lettuce, Ham, Onion, Cheese, Lettuce, Tomato, Ham, Onion, Pickle, Cheese, Tomato, Onion, Top Bun")
+        };
+    }
 }
 
 public class Order
 {
     public string ingredients;
     public float time;
+
+    public Order(string ing, float t)
+    {
+        ingredients = ing;
+        time = t;
+    }
+
+    public Order(string ing)
+    {
+        ingredients = ing;
+        time = 50f;
+    }
 }

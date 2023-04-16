@@ -12,8 +12,6 @@ public class UIController : MonoBehaviour
     public GameManager gm;
     public LevelManager lm;
 
-    public TextMeshProUGUI tmp;
-
     private bool nameEntered = false;
 
     /*private bool diegetic = true;*/

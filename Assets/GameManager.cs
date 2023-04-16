@@ -23,6 +23,8 @@ public class GameManager : MonoBehaviour
     public Fadeout FadeoutSphere;
 
     public LevelManager levelManager;
+
+    public GameObject PointLightGame, PointLightMenu;
     
     public bool DiegeticActive = true, LevelRunning = false;
     public int levelSelect = 1;
@@ -58,7 +60,7 @@ public class GameManager : MonoBehaviour
         if (playerDetails != null & timerGoing)
         {
             /*playerDetails.timer[whichTimer] += Time.deltaTime;*/
-            tmpTimer += Time.deltaTime;
+            tmpTimer += Time.unscaledDeltaTime;
         }
     }
 
@@ -202,6 +204,8 @@ public class GameManager : MonoBehaviour
             }
 
             // Disable pointers and use direct interactors
+            LeftHandRay.GetComponent<ToggleRay>().DeactivateRay();
+            RightHandRay.GetComponent<ToggleRay>().DeactivateRay();
         }
         else
         {
@@ -218,7 +222,8 @@ public class GameManager : MonoBehaviour
         // Turn middle light off and left light on
         ChangeLight(true);
 
-        // Start level subsystem
+
+        // # Start level subsystem
 
         // Load all game objects into scene (extra/diegetic)
         StartCoroutine(levelManager.LevelStart(levelSelect));
@@ -249,6 +254,7 @@ public class GameManager : MonoBehaviour
         // Unload all game things
 
         // Teleport player
+        GameObject.Find("XR Rig").transform.position = new Vector3(XRRigLocations[0].localPosition.x, GameObject.Find("XR Rig").transform.position.y, GameObject.Find("XR Rig").transform.position.z);
 
         // Change active light
         ChangeLight(false);
@@ -270,8 +276,8 @@ public class GameManager : MonoBehaviour
 
     private void ChangeLight(bool toFromGame)
     {
-        //GameObject.Find("Point Light Game").SetActive(toFromGame);
-       // GameObject.Find("Point Light Menu").SetActive(!toFromGame);
+        PointLightGame.SetActive(toFromGame);
+        PointLightMenu.SetActive(!toFromGame);
     }
     #endregion
 }

@@ -26,17 +26,6 @@ public class Ingredient : MonoBehaviour
     private void Start()
     {
         sandwichBuilder = GameObject.Find("Cutting Board").GetComponent<SandwichBuilder>();
-        if (raw)
-        {
-            if (whichMaterialCooks == -2)
-            {
-                // Cook all materials
-            }
-            else if (whichMaterialCooks > -1)
-            {
-                // Cook that select material
-            }
-        }
     }
 
     void Awake()
@@ -81,8 +70,6 @@ public class Ingredient : MonoBehaviour
 
     public void PickedFromPile()
     {
-        Debug.Log("Object picked up");
-
         if (inPile)
         {
             ReplenishPile();
@@ -100,8 +87,6 @@ public class Ingredient : MonoBehaviour
 
             inPile = false;
         }
-
-        Debug.Log("Tasks completed");
     }
 
     public void ReplenishPile()
@@ -113,22 +98,18 @@ public class Ingredient : MonoBehaviour
         next.GetComponent<Rigidbody>().isKinematic = false;
         next.GetComponent<Rigidbody>().useGravity = true;
         next.GetComponent<Rigidbody>().constraints = RigidbodyConstraints.FreezeAll;
-
-        Debug.Log("Pile replenished");
     }
 
     public void RemoveObsoleteCollider()
     {
         GrabTransform.GetComponent<BoxCollider>().enabled = false;
         Destroy(GrabTransform);
-
-        Debug.Log("Object picked up");
     }
 
-    public void AddIngredient(SelectEnterEventArgs arg0)
+    /*public void AddIngredient(SelectEnterEventArgs arg0)
     {
         nextIngredient = arg0.interactableObject.transform.gameObject;
-    }
+    }*/
 
     public bool isInPile()
     {

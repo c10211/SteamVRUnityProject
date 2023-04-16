@@ -50,4 +50,32 @@ public class ExitDoor : MenuItem
             gameManager.GetComponent<GameManager>().QuitGame();
         }
     }
+
+    public void ExitLevelGoingOnce()
+    {
+        StartCoroutine(ExitLevelMoveTmp());
+    }
+    private IEnumerator ExitLevelMoveTmp()
+    {
+        Debug.Log("Here we go, " + toConfirm);
+        if (!toConfirm)
+        {
+            gameObject.transform.localPosition += new Vector3(-0.3f, 0f, 0f);
+            toConfirm = true;
+            handle1.SetActive(false);
+            handle2.SetActive(true);
+            yield return new WaitForSeconds(5f);
+            gameObject.transform.position = startPosition;
+            toConfirm = false;
+            handle1.SetActive(true);
+            handle1.transform.position = handlePos;
+            handle2.SetActive(false);
+            handle1.transform.localPosition = new Vector3(-0.074f, 0.909f, 0.271f);
+            GetComponent<AudioSource>().Play();
+        }
+        else
+        {
+            gameManager.GetComponent<GameManager>().EndGame();
+        }
+    }
 }
