@@ -29,7 +29,7 @@ public class CardMenuItem : MenuItem
 
     private IEnumerator StartGameIfInCorrectPosition()
     {
-        yield return new WaitForSeconds(0.1f);
+        yield return new WaitForSeconds(0.5f);
         try
         {
             if (transform.position == GameObject.Find("Card Attach").transform.position)

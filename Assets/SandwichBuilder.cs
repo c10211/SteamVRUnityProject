@@ -103,7 +103,7 @@ public class SandwichBuilder : MonoBehaviour
         }
         catch
         {
-            Debug.Log("No more ings");
+            //Debug.Log("No more ings");
         }
 
         return tmp;

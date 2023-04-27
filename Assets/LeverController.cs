@@ -14,6 +14,11 @@ public class LeverController : MenuItem
         base.Start();
         //Lights = SelectLight();
         gameManager = GameObject.Find("Game Manager").GetComponent<GameManager>();
+
+        foreach (GameObject light in LightBulbs)
+            light.GetComponent<LevelSelectDisplay>().SetOn(false);
+
+        setActiveLight(gameManager.levelSelect);
     }
 
     private void Awake()

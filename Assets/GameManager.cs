@@ -1,7 +1,10 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
 using UnityEngine;
+using UnityEngine.XR.Interaction.Toolkit;
 
 public class GameManager : MonoBehaviour
 {
@@ -26,18 +29,20 @@ public class GameManager : MonoBehaviour
 
     public GameObject PointLightGame, PointLightMenu;
     
-    public bool DiegeticActive = true, LevelRunning = false;
-    public int levelSelect = 1;
+    public bool DiegeticActive = true, LevelRunning = false, gamePaused = false;
+    public int levelSelect = 0;
     private bool timerGoing = false;
     private int whichTimer;
     private float tmpTimer = 0;
 
-    private enum timerToUpdate
+    public enum timerToUpdate
     {
         DIEGETIC_MAIN,
         DIEGETIC_GAME,
+        DIEGETIC_GAME_MENU,
         EXTRADIEGETIC_MAIN,
-        EXTRADIEGETIC_GAME
+        EXTRADIEGETIC_GAME,
+        EXTRADIEGETIC_GAME_MENU
     }
     #endregion
 
@@ -82,6 +87,37 @@ public class GameManager : MonoBehaviour
     #endregion
 
     #region Menus
+    private Coroutine preciseMenuTimer;
+    public bool preciseMenuTimerRunning = false;
+    private IEnumerator PreciseTimer()
+    {
+        while (true)
+        {
+            if (DiegeticActive)
+            {
+                playerDetails.timer[(int)timerToUpdate.DIEGETIC_MAIN] += Time.unscaledDeltaTime;
+                yield return null;
+            }
+            else
+            {
+                playerDetails.timer[(int)timerToUpdate.EXTRADIEGETIC_MAIN] += Time.unscaledDeltaTime;
+                yield return null;
+            }
+        }
+    }
+
+    public void StartMenuTimer()
+    {
+        preciseMenuTimer = StartCoroutine(PreciseTimer());
+        preciseMenuTimerRunning = true;
+    }
+
+    public void StopMenuTimer()
+    {
+        StopCoroutine(preciseMenuTimer);
+        preciseMenuTimerRunning = false;
+    }
+
     public void ToggleDiegesis()
     {
         Debug.Log("Diegesis toggled");
@@ -103,7 +139,7 @@ public class GameManager : MonoBehaviour
 
         if (active)
         {
-            LeftHandRay.GetComponent<ToggleRay>().DeactivateRay();
+             LeftHandRay.GetComponent<ToggleRay>().DeactivateRay();
             RightHandRay.GetComponent<ToggleRay>().DeactivateRay();
 
             GameObject monitor = GameObject.Find("Monitor");
@@ -125,15 +161,16 @@ public class GameManager : MonoBehaviour
                 monitor.GetComponent<MonitorMenuItem>().LoadScreen(0);
             }
 
-            GameObject card = GameObject.Find("Card");
-            if (card.transform.position == GameObject.Find("Card Attach").transform.position)
-            {
-                card.GetComponent<CardMenuItem>().MoveToStartPostition();
-            }
+            /*GameObject card = GameObject.Find("Card");
+            GameObject cardReader = GameObject.Find("Card Reader");
+            
+            cardReader.GetComponent<XRSocketInteractor>().enabled = false;
+            card.GetComponent<CardMenuItem>().MoveToStartPostition();
+            cardReader.GetComponent<XRSocketInteractor>().enabled = true;*/
         }
         else
         {
-            LeftHandRay.GetComponent<ToggleRay>().ActivateRay();
+             LeftHandRay.GetComponent<ToggleRay>().ActivateRay();
             RightHandRay.GetComponent<ToggleRay>().ActivateRay();
 
             //GameObject.Find("Change Menu").GetComponent<ToggleInterface>().Toggle();
@@ -159,6 +196,8 @@ public class GameManager : MonoBehaviour
             //g.GetComponent<MenuItem>().gameManager = this;
             g.SetActive(false);
         }
+
+        StopMenuTimer();
     }
 
     public void SetLevel(int x)
@@ -192,6 +231,8 @@ public class GameManager : MonoBehaviour
 
     IEnumerator FadeoutAndLoadGame()
     {
+        StopMenuTimer();
+
         Debug.Log("Fading out");
         yield return FadeoutSphere.Fade(FadeoutSphere.FADE_DIRECTION_OUT);
 
@@ -204,7 +245,7 @@ public class GameManager : MonoBehaviour
             }
 
             // Disable pointers and use direct interactors
-            LeftHandRay.GetComponent<ToggleRay>().DeactivateRay();
+             LeftHandRay.GetComponent<ToggleRay>().DeactivateRay();
             RightHandRay.GetComponent<ToggleRay>().DeactivateRay();
         }
         else
@@ -220,11 +261,9 @@ public class GameManager : MonoBehaviour
         GameObject.Find("XR Rig").transform.position = new Vector3(XRRigLocations[1].localPosition.x, GameObject.Find("XR Rig").transform.position.y, GameObject.Find("XR Rig").transform.position.z);
 
         // Turn middle light off and left light on
-        ChangeLight(true);
-
+        ChangeOverheadLight(true);
 
         // # Start level subsystem
-
         // Load all game objects into scene (extra/diegetic)
         StartCoroutine(levelManager.LevelStart(levelSelect));
 
@@ -238,34 +277,59 @@ public class GameManager : MonoBehaviour
         LevelRunning = true;
     }
 
-    public void EndGame()
+    public void EndGame(float timeInMenu, float timeInGame, string reason)
     {
-        StartCoroutine(FadeoutAndUnloadGame());
+        // Save details
+        if (DiegeticActive)
+        {
+            playerDetails.timer[(int)timerToUpdate.DIEGETIC_GAME] += timeInGame;
+            playerDetails.timer[(int)timerToUpdate.DIEGETIC_GAME_MENU] += timeInMenu;
+        }
+        else
+        {
+            playerDetails.timer[(int)timerToUpdate.EXTRADIEGETIC_GAME] += timeInGame;
+            playerDetails.timer[(int)timerToUpdate.EXTRADIEGETIC_GAME_MENU] += timeInMenu;
+        }
+
+        StartCoroutine(FadeoutAndUnloadGame(reason));
     }
 
-    IEnumerator FadeoutAndUnloadGame()
+    IEnumerator FadeoutAndUnloadGame(string reason)
     {
         // Stop timer
 
-        // End level subsystem?
+        // Save player details
+        SavePlayerData(reason);
+
+        // Update menu details
 
         yield return FadeoutSphere.Fade(FadeoutSphere.FADE_DIRECTION_OUT);
-
-        // Unload all game things
 
         // Teleport player
         GameObject.Find("XR Rig").transform.position = new Vector3(XRRigLocations[0].localPosition.x, GameObject.Find("XR Rig").transform.position.y, GameObject.Find("XR Rig").transform.position.z);
 
         // Change active light
-        ChangeLight(false);
+        ChangeOverheadLight(false);
 
         // Load extra/diegetic menu
+        setDiegeticActive(DiegeticActive);
 
         yield return FadeoutSphere.Fade(FadeoutSphere.FADE_DIRECTION_IN);
+
+        // Start menu timer
+        StartMenuTimer();
+
+        LevelRunning = false;
     }
 
-    public void QuitGame()
+    public void QuitGame(string reason)
     {
+        // Write all playerDetails to a file
+        try
+        {
+            SavePlayerData(reason);
+        } catch { /* No player logged in? */ }
+
 #if UNITY_STANDALONE
         Application.Quit();
 #endif
@@ -274,11 +338,42 @@ public class GameManager : MonoBehaviour
 #endif
     }
 
-    private void ChangeLight(bool toFromGame)
+    private void ChangeOverheadLight(bool toFromGame)
     {
         PointLightGame.SetActive(toFromGame);
         PointLightMenu.SetActive(!toFromGame);
     }
+    #endregion
+
+    #region Saving Data
+    public void SavePlayerData(string reason)
+    {
+        Debug.Log("Attempting to save");
+
+        BinaryFormatter bf = new BinaryFormatter();
+        //FileStream fsOut = File.OpenWrite(Application.persistentDataPath + "/" + name + ".txt");
+        FileStream fsOut = File.OpenWrite("D:\\Collected Data\\" + playerDetails.PlayerName + ".txt");
+
+        bf.Serialize(fsOut, playerDetails);
+
+        fsOut.Close();
+
+        string csvData = playerDetails.toCsv(reason);
+
+        try
+        {
+            File.AppendAllText("D:\\Collected Data\\" + playerDetails.PlayerName + ".csv", csvData);
+            Debug.Log("Player data written to D:\\Collected Data\\" + playerDetails.PlayerName + ".csv");
+        } catch (Exception e) { Debug.Log(e.Message); }
+    }
+    #endregion
+
+    #region Inputs
+    // Note that keyboard inputs are controlled by UIController,
+    // component on `XR Rig` > `OVR Mirror` > `Display UI`
+
+    // Index controller inputs are handled by OnButtonPress,
+    // component on `XR Rig` > `Camera Offset`
     #endregion
 }
 
@@ -287,11 +382,70 @@ public class PlayerDetails
 {
     public string PlayerName;
     public float hoursWorkedDiegetic, hoursWorkedExtradiegetic;
-    public int moneyEarnedDiegetic, moneyEarnedExtradiegetic;
+    public int   moneyEarnedDiegetic, moneyEarnedExtradiegetic;
 
-    /*public int timeSpentInMainMenuDiegetic = 0, timeSpentInMainMenuExtradiegetic = 1,
-        timeSpentInGameMenuDiegetic = 2, timeSpentInGameMenuExtradiegetic = 3;*/
     public float[] timer;
-    public bool usedDiegetic, usedExtradiegetic, usedHat;
+    public bool usedDiegetic, usedExtradiegetic, usedHat, keptToTimer;
     public int mistakeCounterDiegetic, mistakeCounterExtradiegetic;
+    public int timesPausedDiegetic, timesPausedExtradiegetic, powerupUsagesDiegetic, powerupUsagesExtradiegetic;
+
+    public bool[][] completed; // [level][diegetic]
+
+    public string toCsv(string reason)
+    {
+        string tmp = "Name," +
+            "Diegetic Level 1," +
+            "Extradiegetic Level 1," +
+            "Diegetic Level 2," +
+            "Extradiegetic Level 2," +
+            "Diegetic Level 3," +
+            "Extradiegetic Level 3," +
+            "Diegetic Main Menu," +
+            "Extradiegetic Main Menu," +
+            "Diegetic Pause Menu," +
+            "Extradiegetic Pause Menu," +
+            "Diegetic Game Time," +
+            "Extradiegetic Game Time," +
+            "Diegetic Paused Times," +
+            "Extradiegetic Paused Times," +
+            "Diegetic Powerup Used," +
+            "Extradiegetic Powerup Used," +
+            "Used Hat," +
+            "Reason" +
+            "\n" + PlayerName + "," +
+            completed[0][0] + "," +
+            completed[0][1] + "," +
+            completed[1][0] + "," +
+            completed[1][1] + "," +
+            completed[2][0] + "," +
+            completed[2][1] + "," +
+            timer[(int)GameManager.timerToUpdate.DIEGETIC_MAIN] + "," + 
+            timer[(int)GameManager.timerToUpdate.EXTRADIEGETIC_MAIN] + "," + 
+            timer[(int)GameManager.timerToUpdate.DIEGETIC_GAME_MENU] + "," + 
+            timer[(int)GameManager.timerToUpdate.EXTRADIEGETIC_GAME_MENU] + "," +
+            timer[(int)GameManager.timerToUpdate.DIEGETIC_GAME] + "," +
+            timer[(int)GameManager.timerToUpdate.EXTRADIEGETIC_GAME] + "," +
+            timesPausedDiegetic + "," +
+            timesPausedExtradiegetic + "," +
+            powerupUsagesDiegetic + "," +
+            powerupUsagesExtradiegetic + "," +
+            usedHat + "," +
+            reason + "\n";
+
+        return tmp;
+    }
+
+    public string toString()
+    {
+        //GameManager gm = GameObject.Find("Game Manager").GetComponent<GameManager>();
+        string tmp = "Player Name: " + PlayerName + "\n" +
+            "Hours Worked:\n\tDiegetic: " + hoursWorkedDiegetic + "\tExtradiegetic: " + hoursWorkedExtradiegetic +
+            //"Money Earned:\n\tDiegetic: " + moneyEarnedDiegetic + "\tExtradiegetic: " + moneyEarnedExtradiegetic +
+            "\nTime Spent in Main Menu:\n\tDiegetic: " + timer[(int)GameManager.timerToUpdate.DIEGETIC_MAIN] + "\tExtradiegetic: " + timer[(int)GameManager.timerToUpdate.EXTRADIEGETIC_MAIN] +
+            "\nTime Spent in Pause Menu:\n\tDiegetic: " + timer[(int)GameManager.timerToUpdate.DIEGETIC_GAME_MENU] + "\tExtradiegetic: " + timer[(int)GameManager.timerToUpdate.EXTRADIEGETIC_GAME_MENU] +
+            "\nTime Spent in Game::\n\tDiegetic: " + timer[(int)GameManager.timerToUpdate.DIEGETIC_GAME] + "\tExtradiegetic: " + timer[(int)GameManager.timerToUpdate.EXTRADIEGETIC_GAME] +
+            "\nThey " + (usedHat ? "used" : "did not use") + " the hat.\n\n\n";
+
+        return tmp;
+    }
 }

@@ -54,6 +54,23 @@ public class UIController : MonoBehaviour
             if (Input.GetKeyDown(KeyCode.Space))
             {
                 // Toggle timer
+                if (gm.LevelRunning)
+                {
+                    // Toggle game timer coroutine
+                    // Not implemented
+                }
+                else
+                {
+                    // Toggle main menu timer
+                    if (gm.preciseMenuTimerRunning)
+                    {
+                        gm.StopMenuTimer();
+                    }
+                    else
+                    {
+                        gm.StartMenuTimer();
+                    }
+                }
             }
 
             if (Input.GetKeyDown(KeyCode.Escape))
@@ -61,16 +78,24 @@ public class UIController : MonoBehaviour
                 if (gm.LevelRunning)
                 {
                     // exit that level
-                    gm.EndGame();
+                    StopCoroutine(lm.gameTimer);
+                    StopCoroutine(lm.preciseTimer);
+                    lm.LevelStop("Esc key pressed");
+                    //gm.EndGame(lm.menuTime, lm.gameTime);
                 }
                 else
                 {
-                    // save data and clear for next player
+                    // Save data
+                    gm.SavePlayerData("Esc key pressed");
+
+                    // Clear for next player
                     nameEntered = false;
                     gm.playerDetails = null;
                     gm.setMenusInactive();
 
-                    UIObjects.GetValueOrDefault("Name Input").GetComponent<TextMeshProUGUI>().text = "";
+                    //UIObjects.GetValueOrDefault("Name Input").GetComponent<TextMeshProUGUI>().text = "";
+                    //UIObjects["Name Input"].GetComponent<TextMeshProUGUI>().text = "";
+                    GameObject.Find("Name Input").GetComponent<TMP_InputField>().text = "";
                 }
             }
 
@@ -78,17 +103,36 @@ public class UIController : MonoBehaviour
             {
                 gm.playerDetails.usedHat = true;
             }
+
+            if (Input.GetKeyDown(KeyCode.Keypad1))
+            {
+                gm.SetLevel(0);
+                gm.StartGame();
+            }
+
+            if (Input.GetKeyDown(KeyCode.Keypad2))
+            {
+                gm.SetLevel(1);
+                gm.StartGame();
+            }
+
+            if (Input.GetKeyDown(KeyCode.Keypad3))
+            {
+                gm.SetLevel(2);
+                gm.StartGame();
+            }
         }
         else
         {
             if (Input.GetKeyDown(KeyCode.Tab))
             {
+                gm.DiegeticActive = !gm.DiegeticActive;
                 changeMenuTypeUI();
             }
 
             if (Input.GetKeyDown(KeyCode.Escape))
             {
-                gm.QuitGame();
+                gm.QuitGame("Esc key pressed");
             }
         }
 
@@ -104,7 +148,7 @@ public class UIController : MonoBehaviour
 
     public void SetPlayerName(string name)
     {
-        if (name == null || name == "")
+        if (name == null || name == "" || nameEntered)
             return;
 
         nameEntered = true;
@@ -121,15 +165,46 @@ public class UIController : MonoBehaviour
         else
         {
             gm.playerDetails.PlayerName = name;
+
+            gm.playerDetails.timer = new float[6];
+            gm.playerDetails.completed = new bool[3][];
+            {
+                gm.playerDetails.completed[0] = new bool[2];
+                gm.playerDetails.completed[1] = new bool[2];
+                gm.playerDetails.completed[2] = new bool[2];
+            }
+
+            gm.playerDetails.hoursWorkedDiegetic = 0f;
+            gm.playerDetails.hoursWorkedExtradiegetic = 0f;
+
+            gm.playerDetails.moneyEarnedDiegetic = 0;
+            gm.playerDetails.moneyEarnedExtradiegetic = 0;
+
+            gm.playerDetails.mistakeCounterDiegetic = 0;
+            gm.playerDetails.mistakeCounterExtradiegetic = 0;
+
+            gm.playerDetails.usedDiegetic = false;
+            gm.playerDetails.usedExtradiegetic = false;
+
+            gm.playerDetails.usedHat = false;
+            gm.playerDetails.keptToTimer = true;
+
+            gm.playerDetails.timesPausedDiegetic = 0;
+            gm.playerDetails.timesPausedExtradiegetic = 0;
+            gm.playerDetails.powerupUsagesDiegetic = 0;
+            gm.playerDetails.powerupUsagesExtradiegetic = 0;
         }
 
-        gm.setDiegeticActive(gm.DiegeticActive);
+        if (!gm.LevelRunning)
+        {
+            gm.setDiegeticActive(gm.DiegeticActive);
+            gm.StartMenuTimer();
+        }
     }
 
     private void changeMenuTypeUI()
     {
-        gm.DiegeticActive  = !gm.DiegeticActive;
-        String opt = gm.DiegeticActive ? "diegetic" : "extradiegetic";
+        string opt = gm.DiegeticActive ? "diegetic" : "extradiegetic";
         UIObjects.GetValueOrDefault("Active Menu Type").GetComponent<TextMeshProUGUI>().text = "Menu is " + opt;
     }
 }

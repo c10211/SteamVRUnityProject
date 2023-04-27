@@ -106,10 +106,11 @@ public class Ingredient : MonoBehaviour
         Destroy(GrabTransform);
     }
 
-    /*public void AddIngredient(SelectEnterEventArgs arg0)
+    public void MakeInteractable(bool status)
     {
-        nextIngredient = arg0.interactableObject.transform.gameObject;
-    }*/
+        GetComponent<XRGrabInteractable>().enabled = status;
+        GetComponentInChildren<XRGrabInteractable>().enabled = status;
+    }
 
     public bool isInPile()
     {
@@ -122,6 +123,4 @@ public class Ingredient : MonoBehaviour
     }
 
     public string IngredientName { get => ingredientName; }
-
-    //public bool TopOfStack { get => topOfStack; set => topOfStack = value; }
 }

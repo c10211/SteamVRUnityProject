@@ -30,12 +30,15 @@ public class PowerupScreen : MonoBehaviour
 
     public void PrimePowerup()
     {
-
+        PowerupText.SetActive(false);
+        PowerupPrimed.SetActive(true);
     }
 
     public void StartPowerupTimer(float powerupTime)
     {
+        Debug.Log("Changing screen to timer");
         PowerupText.SetActive(false);
+        PowerupPrimed.SetActive(false);
         PowerupTimer.SetActive(true);
 
         StartCoroutine(PowerupTimerBarShrink(powerupTime));
@@ -43,6 +46,7 @@ public class PowerupScreen : MonoBehaviour
 
     IEnumerator PowerupTimerBarShrink(float powerupTime)
     {
+        Debug.Log("Animating timer");
         float curTime = powerupTime;
         while (curTime > 0f)
         {

@@ -3,23 +3,38 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.XR.Interaction.Toolkit;
 
 public class LevelManager : MonoBehaviour
 {
+    GameManager gameManager;
     private Order[][] ordersByLevel = new Order[3][];
     float defaultTimeScale, slowTimeScale, defaultFixedDeltaTime, currentTimeScale;
     [SerializeField]
     private GameObject[] IngredientPiles, DiegeticGameItems, ExtradiegeticGameItems;
     public GameObject[] Confettis;
     int lev, ord;
-    private bool PowerupPrimed, PowerupActive, GamePaused;
-    GameManager gameManager;
+    private bool PowerupPrimed, PowerupActive, GamePaused, inTime;
 
-    Coroutine gameTimer;
+    [Header("Diegetic pause menu detection")]
+    [SerializeField]
+    private Transform playerHead, grayscaleXTrigger;
+
+    [Header("Pause Menu Powerup Button")]
+    public Image PowerupButton;
+    public Material ActivePowerupButtonMaterial, InactivePowerupButtonMaterial;
+    public float PowerupTimeInSeconds = 15f;
+
+    public Coroutine gameTimer, preciseTimer, pauseChecker;
+
+    [Header("Diegetic Screen")]
     public TextMeshProUGUI MenuText;
 
-    public float PowerupTimeInSeconds = 30f;
     PowerupScreen screen;
+
+    private Coroutine menuTimeKeeper;
+    public float menuTime = 0f, gameTime = 0f;
 
     // Start is called before the first frame update
     void Start()
@@ -45,6 +60,7 @@ public class LevelManager : MonoBehaviour
             o.SetActive(false);
 
         ord = 0;
+        currentTimeScale = 1f;
 
         // Set sandwich list
         SetSandwichLists();
@@ -64,18 +80,29 @@ public class LevelManager : MonoBehaviour
         foreach (GameObject o in IngredientPiles)
             o.SetActive(true);
 
-        foreach (GameObject o in DiegeticGameItems)
-            o.SetActive(gameManager.DiegeticActive);
+        if (gameManager.DiegeticActive)
+        {
+            foreach (GameObject o in DiegeticGameItems)
+                o.SetActive(true);
 
-        foreach (GameObject o in ExtradiegeticGameItems)
-            o.SetActive(!gameManager.DiegeticActive);
+            GameObject.Find("Card (1)").transform.position = GameObject.Find("Card Attach (1)").transform.position;
+            GameObject.Find("Card (1)").transform.rotation = GameObject.Find("Card Attach (1)").transform.rotation;
+        }
+
+        // Extradiegetic menu activated when needed
 
         ord = 0;
 
         yield return new WaitForSeconds(1.5f);
 
+        pauseChecker = StartCoroutine(CheckForDiegeticPause());
+
         Debug.Log("Starting Timer");
-        gameTimer = StartCoroutine(LevelTimer(10f));
+        gameTimer = StartCoroutine(LevelTimer(3f));
+
+        inTime = true;
+        menuTime = 0f; gameTime = 0f;
+        preciseTimer = StartCoroutine(PreciseTimer());
 
         MenuText.text = ordersByLevel[lev][ord].ingredients;
     }
@@ -85,15 +112,23 @@ public class LevelManager : MonoBehaviour
         // Launch confetti
         foreach (GameObject go in Confettis) go.GetComponent<ParticleSystem>().Play();
 
-        yield return new WaitForSecondsRealtime(3f);
-        
-        StopCoroutine(gameTimer);
+        gameManager.playerDetails.completed[lev][gameManager.DiegeticActive ? 0 : 1] = true;
 
-        LevelStop();
+        StopCoroutine(gameTimer);
+        StopCoroutine(preciseTimer);
+        StopCoroutine(pauseChecker);
+
+        yield return new WaitForSecondsRealtime(3f);
+
+        LevelStop("Level " + lev + "finished");
     }
 
-    public void LevelStop()
+    public void LevelStop(string reason)
     {
+        Time.timeScale = 1f;
+        Time.fixedDeltaTime = 0.02f;
+        currentTimeScale = 1f;
+
         foreach (GameObject o in IngredientPiles)
             o.SetActive(false);
 
@@ -103,36 +138,21 @@ public class LevelManager : MonoBehaviour
         foreach (GameObject o in ExtradiegeticGameItems)
             o.SetActive(false);
 
-        StopCoroutine(gameTimer);
+        // Exit to Menu
+        gameManager.EndGame(menuTime, gameTime, reason + lev);
+
+        menuTime = 0f; gameTime = 0f;
     }
 
     public bool checkIngredients(string current)
     {
-        Debug.Log("Checking Ingredients");
+        //Debug.Log("Checking Ingredients");
         Debug.Log("Level = " + lev + ", order number = " + ord + "\n" +
             "Requirements = " + ordersByLevel[lev][ord].ingredients + "\n" +
             "Current = " + current);
 
         bool corr = current == ordersByLevel[lev][ord].ingredients;
 
-        // Start separate coroutine
-        if (corr)
-        {
-            Debug.Log("Burger is GOOD!!!");
-
-            // Check if more orders exist
-            bool more = ord > ordersByLevel.Length - 1;
-
-            // Fireworks?
-
-            // End game?
-            /*if (!more)
-            {
-                gameManager.EndGame();
-            }*/
-        }
-
-        Debug.Log("Ingredients Checked");
         return corr;
     }
 
@@ -150,8 +170,9 @@ public class LevelManager : MonoBehaviour
                 MenuText.text = ordersByLevel[lev][ord].ingredients;
             }
         }
-        catch
+        catch (Exception e)
         {
+            Debug.Log(e.ToString());
             Debug.Log("Level complete!");
             StartCoroutine(LevelCompleted());
         }
@@ -161,18 +182,14 @@ public class LevelManager : MonoBehaviour
     {
         if (!PowerupActive)
         {
-            PowerupPrimed = true;
-            screen.PrimePowerup();
-        }
-    }
-
-    public void GrayscaleZoneExited()
-    {
-        if (PowerupPrimed)
-        {
-            StartCoroutine(Powerup());
-
-            screen.StartPowerupTimer(PowerupTimeInSeconds);
+            Debug.Log("Slow powerup activated");
+            if (GamePaused)
+                PowerupPrimed = true;
+            else
+                StartCoroutine(Powerup());
+            currentTimeScale = slowTimeScale;
+            if (gameManager.DiegeticActive)
+                screen.PrimePowerup();
         }
     }
 
@@ -180,18 +197,22 @@ public class LevelManager : MonoBehaviour
     {
         PowerupPrimed = false;
         PowerupActive = true;
+        if (gameManager.DiegeticActive)
+        {
+            screen.StartPowerupTimer(PowerupTimeInSeconds);
+            gameManager.playerDetails.powerupUsagesDiegetic++;
+        }
+        else
+        {
+            gameManager.playerDetails.powerupUsagesExtradiegetic++;
+        }
+
         SlowTime();
         yield return new WaitForSecondsRealtime(PowerupTimeInSeconds);
         SpeedTime();
+        if (gameManager.DiegeticActive)
+            screen.StopPowerupTimer();
         PowerupActive = false;
-    }
-
-    public void FreezeTime(Collider other)
-    {
-        if (other.gameObject.name == "Main Camera")
-        {
-            FreezeTime();
-        }
     }
 
     public void FreezeTime()
@@ -201,25 +222,17 @@ public class LevelManager : MonoBehaviour
         StartCoroutine(FreezeUnfreezeTimer());
     }
 
-    public void UnfreezeTime(Collider other)
-    {
-        if (other.gameObject.name == "Main Camera")
-        {
-            UnfreezeTime();
-        }
-    }
-
     public void UnfreezeTime()
     {
-        Debug.Log("Unfreezing time");
         GamePaused = false;
     }
 
     private IEnumerator FreezeUnfreezeTimer()
     {
-        Time.timeScale = 0;
+        Time.timeScale = 0.01f;
 
         yield return new WaitUntil(() => !GamePaused);
+        Debug.Log("Setting Timescale to " + currentTimeScale);
 
         Time.timeScale = currentTimeScale;
     }
@@ -227,105 +240,266 @@ public class LevelManager : MonoBehaviour
     public void SlowTime()
     {
         Debug.Log("Slowing down timescale from " + Time.timeScale);
-        Time.timeScale = slowTimeScale;
+        if(!GamePaused)
+            Time.timeScale = slowTimeScale;
+        currentTimeScale = slowTimeScale;
 
-        Time.fixedDeltaTime = defaultFixedDeltaTime * Time.timeScale;
+        Time.fixedDeltaTime = currentTimeScale * 0.02f;
     }
 
     public void SpeedTime()
     {
         Debug.Log("Returning to normal timescale from " + Time.timeScale);
 
-        Time.timeScale = defaultTimeScale;
+        if (!GamePaused)
+            Time.timeScale = defaultTimeScale;
+        currentTimeScale = defaultTimeScale;
 
-        Time.fixedDeltaTime = defaultFixedDeltaTime * Time.timeScale;
+        Time.fixedDeltaTime = currentTimeScale * 0.02f;
+    }
+
+    private void SetIngredientsInteractable(bool yesOrNo)
+    {
+        GameObject[] gos = GameObject.FindGameObjectsWithTag("Ingredient");
+
+        foreach (GameObject go in gos)
+        {
+            go.GetComponent<Ingredient>().MakeInteractable(yesOrNo);
+        }
+    }
+
+    IEnumerator CheckForDiegeticPause()
+    {
+        yield return null;
+        while (gameManager.LevelRunning && gameManager.DiegeticActive)
+        {
+            if (playerHead.position.x < grayscaleXTrigger.position.x)
+            {
+                // Freeze time
+                FreezeTime();
+
+                // Make ingredients uninteractable
+                SetIngredientsInteractable(false);
+
+                // Count
+                gameManager.playerDetails.timesPausedDiegetic++;
+
+                GamePaused = true;
+
+                yield return new WaitUntil(() => playerHead.position.x > grayscaleXTrigger.position.x);
+
+                UnfreezeTime();
+
+                if (PowerupPrimed)
+                    StartCoroutine(Powerup());
+
+                SetIngredientsInteractable(true);
+
+                GamePaused = false;
+            }
+            yield return null;
+        }
+    }
+
+    public void PauseButtonPressed()
+    {
+        if (gameManager.LevelRunning && !gameManager.DiegeticActive)
+        {
+            if (GamePaused)
+            {
+                GamePaused = false;
+
+                ExtradiegeticUnpauseMenu();
+
+                PauseExited();
+            }
+            else
+            {
+                GamePaused = true;
+
+                // Count
+                gameManager.playerDetails.timesPausedExtradiegetic++;
+
+                ExtradiegeticPauseMenu();
+            }
+        }
+    }
+
+    public void PauseExited()
+    {
+        if (PowerupPrimed)
+        {
+            StartCoroutine(Powerup());
+
+            if (gameManager.DiegeticActive)
+                screen.StartPowerupTimer(PowerupTimeInSeconds);
+        }
     }
 
     public void ExtradiegeticPauseMenu()
     {
         // Freeze time
-
-        // Grayscale
+        FreezeTime();
 
         // Pause timer
-
-        // Start menu timer
+            // Done, timer freezes if GamePaused == true
 
         // Activate menu
+        // Grayscale
+        foreach (GameObject o in ExtradiegeticGameItems)
+            o.SetActive(true);
 
         // Make ingredients non-interactable
+        foreach (GameObject go in IngredientPiles)
+        {
+            try
+            {
+                GetComponentInChildren<Ingredient>().MakeInteractable(false);
+            }
+            catch
+            {
+                // Cutting board or something, just ignore
+            }
+        }
+
+        // Activate pointer hands
+        gameManager. LeftHandRay.GetComponent<ToggleRay>().ActivateRay();
+        gameManager.RightHandRay.GetComponent<ToggleRay>().ActivateRay();
     }
 
     public void ExtradiegeticUnpauseMenu()
     {
         // Unfreeze time
-
-        // Remove grayscale
+        UnfreezeTime();
 
         // Unpause timer
+            // Done, timer unfreezes if GamePaused == false
 
         // Pause menu timer
+        //StopCoroutine(menuTimeKeeper);
 
         // Deactivate menu
+        // Remove grayscale
+        foreach (GameObject o in ExtradiegeticGameItems)
+            o.SetActive(false);
 
         // Make ingredients interactable
+        foreach (GameObject go in IngredientPiles)
+        {
+            try
+            {
+                GetComponentInChildren<Ingredient>().MakeInteractable(true);
+            }
+            catch
+            {
+                // Cutting board or something, just ignore
+            }
+        }
+
+        // Deactivate pointer hands
+        gameManager. LeftHandRay.GetComponent<ToggleRay>().DeactivateRay();
+        gameManager.RightHandRay.GetComponent<ToggleRay>().DeactivateRay();
     }
-
-    // Requirements:
-    // -------------
-    // Timer
-
-    // List of orders
-
-    // Check if current sandwich matches order
-
-    // Orders:
-    // List of ingredient names, matches GameObject names
-    // Time to be added
-    // Difficulty level? In array split by difficulty?
-
-    // Time powerup isActive
-
-    // Slow gravity on other objects
 
     private IEnumerator LevelTimer(float total)
     {
-        Debug.Log("Level timer coroutine");
         float totalSeconds = total * 60f;
         screen.SetTimeElapsed(total + ":00");
         yield return new WaitForSeconds(1);
         while (totalSeconds > 0f)
         {
-            totalSeconds -= 1;
-            int curMin = Mathf.FloorToInt(totalSeconds / 60);
-            int curSec = Mathf.FloorToInt(totalSeconds % 60);
-            string min = (curMin > 9 ? (curMin.ToString()) : ("0" + curMin));
-            string sec = (curSec > 9 ? (curSec.ToString()) : ("0" + curSec));
-            screen.SetTimeElapsed(min + ":" + sec);
-            yield return new WaitForSeconds(1f);
+            if (!GamePaused)
+            {
+                totalSeconds -= 1;
+                int curMin = Mathf.FloorToInt(totalSeconds / 60);
+                int curSec = Mathf.FloorToInt(totalSeconds % 60);
+                string min = curMin > 9 ? curMin.ToString() : ("0" + curMin);
+                string sec = curSec > 9 ? curSec.ToString() : ("0" + curSec);
+                screen.SetTimeElapsed(min + ":" + sec);
+                yield return new WaitForSeconds(1f);
+            }
+            else
+            {
+                yield return new WaitUntil(() => !GamePaused);
+            }
         }
+        inTime = false;
+        gameManager.playerDetails.keptToTimer = false;
+    }
+
+    /*private IEnumerator PauseMenuTimer()
+    {
+        while (true)
+        {
+            menuTime += Time.unscaledDeltaTime;
+            yield return null;
+        }
+    }*/
+
+    private IEnumerator PreciseTimer()
+    {
+        while (true)
+        {
+            if (GamePaused)
+            {
+                menuTime += Time.unscaledDeltaTime;
+                yield return null;
+            }
+            else
+            {
+                gameTime += Time.unscaledDeltaTime;
+                yield return null;
+            }
+        }
+    }
+
+    public int GetLevelNumber()
+    {
+        return lev;
     }
 
     private void SetSandwichLists()
     {
         ordersByLevel[0] = new Order[] {
-            new Order("Bottom Bun, Ham, Cheese, Lettuce, Tomato, Top Bun"),
-            new Order("Bottom Bun, Egg, Cheese, Onion, Top Bun"),
-            new Order("Bottom Bun, Ham, Cheese, Tomato, Onion, Top Bun")
+            new Order("Bottom Bun, Lettuce, Cheese, Tomato, Ham, Top Bun"),
+            new Order("Bottom Bun, Egg, Onion, Ham, Pickle, Top Bun"),
+            new Order("Bottom Bun, Tomato, Ham, Cheese, Onion, Top Bun"),
+            new Order("Bottom Bun, Cheese, Ham, Onion, Pickle, Top Bun")
         };
-        ordersByLevel[1] = new Order[]
+        /*ordersByLevel[1] = new Order[]
         {
             new Order("Bottom Bun, Ham, Cheese, Lettuce, Tomato, Onion, Pickle, Onion, Top Bun"),
             new Order("Bottom Bun, Ham, Cheese, Tomato, Onion, Ham, Cheese, Tomato, Onion, Top Bun"),
             new Order("Bottom Bun, Egg, Cheese, Tomato, Onion, Egg, Cheese, Tomato, Onion, Top Bun"),
             new Order("Bottom Bun, Ham, Cheese, Lettuce, Tomato, Cheese, Pickle, Tomato, Top Bun")
+        };*/
+        ordersByLevel[1] = new Order[]
+        {
+            new Order("Bottom Bun, Cheese, Lettuce, Ham, Egg, Onion, Tomato, Top Bun"),
+            new Order("Bottom Bun, Ham, Cheese, Lettuce, Tomato, Onion, Pickle, Top Bun"),
+            new Order("Bottom Bun, Lettuce, Tomato, Ham, Cheese, Onion, Pickle, Top Bun"),
+            new Order("Bottom Bun, Egg, Tomato, Cheese, Lettuce, Ham, Onion, Top Bun"),
+            new Order("Bottom Bun, Ham, Cheese, Egg, Onion, Tomato, Lettuce, Top Bun"),
+            new Order("Bottom Bun, Cheese, Ham, Tomato, Onion, Lettuce, Pickle, Top Bun")/*,
+            new Order("Bottom Bun, Lettuce, Tomato, Ham, Cheese, Onion, Egg, Pickle, Top Bun")*/
         };
-        ordersByLevel[2] = new Order[]
+        /*ordersByLevel[2] = new Order[]
         {
             new Order("Bottom Bun, Ham, Onion, Cheese, Lettuce, Tomato, Ham, Onion, Pickle, Cheese, Lettuce, Tomato, Ham, Cheese, Onion, Tomato, Lettuce, Top Bun"),
             new Order("Bottom Bun, Cheese, Lettuce, Tomato, Egg, Cheese, Onion, Tomato, Lettuce, Egg, Onion, Cheese, Lettuce, Tomato, Egg, Onion, Tomato, Top Bun"),
             new Order("Bottom Bun, Ham, Tomato, Cheese, Lettuce, Ham, Onion, Cheese, Tomato, Onion, Ham, Lettuce, Cheese, Onion, Tomato, Lettuce, Ham, Top Bun"),
             new Order("Bottom Bun, Cheese, Tomato, Egg, Onion, Cheese, Tomato, Lettuce, Egg, Cheese, Onion, Tomato, Lettuce, Egg, Tomato, Onion, Lettuce, Top Bun"),
+            new Order("Bottom Bun, Lettuce, Ham, Cheese, Tomato, Lettuce, Ham, Onion, Cheese, Lettuce, Tomato, Ham, Onion, Pickle, Cheese, Tomato, Onion, Top Bun")
+        };*/
+        ordersByLevel[2] = new Order[]
+        {
+            new Order("Bottom Bun, Lettuce, Ham, Cheese, Tomato, Pickle, Onion, Ham, Cheese, Top Bun"),
+            new Order("Bottom Bun, Egg, Tomato, Onion, Ham, Cheese, Pickle, Ham, Lettuce, Top Bun"),
+            new Order("Bottom Bun, Cheese, Lettuce, Onion, Egg, Tomato, Cheese, Ham, Lettuce, Pickle, Top Bun"),
+            new Order("Bottom Bun, Tomato, Lettuce, Ham, Cheese, Onion, Egg, Cheese, Ham, Pickle, Top Bun"),
+            new Order("Bottom Bun, Ham, Cheese, Tomato, Egg, Lettuce, Ham, Onion, Pickle, Cheese, Top Bun"),
+            new Order("Bottom Bun, Onion, Ham, Lettuce, Cheese, Tomato, Egg, Ham, Cheese, Pickle, Top Bun"),
+            new Order("Bottom Bun, Pickle, Lettuce, Cheese, Ham, Tomato, Ham, Cheese, Onion, Egg, Top Bun"),
             new Order("Bottom Bun, Lettuce, Ham, Cheese, Tomato, Lettuce, Ham, Onion, Cheese, Lettuce, Tomato, Ham, Onion, Pickle, Cheese, Tomato, Onion, Top Bun")
         };
     }

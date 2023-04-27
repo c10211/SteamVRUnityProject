@@ -47,15 +47,24 @@ public class ExitDoor : MenuItem
         }
         else
         {
-            gameManager.GetComponent<GameManager>().QuitGame();
+            string reason;
+            if (gameManager.LevelRunning)
+            {
+                reason = "Exit door from level " + gameManager.levelManager.GetLevelNumber();
+            }
+            else
+            {
+                reason = "Exit door from main menu";
+            }
+            gameManager.GetComponent<GameManager>().QuitGame(reason);
         }
     }
 
-    public void ExitLevelGoingOnce()
+    /*public void ExitLevelGoingOnce()
     {
         StartCoroutine(ExitLevelMoveTmp());
     }
-    private IEnumerator ExitLevelMoveTmp()
+    /*private IEnumerator ExitLevelMoveTmp()
     {
         Debug.Log("Here we go, " + toConfirm);
         if (!toConfirm)
@@ -75,7 +84,8 @@ public class ExitDoor : MenuItem
         }
         else
         {
-            gameManager.GetComponent<GameManager>().EndGame();
+            LevelManager lm = GameObject.Find("Level Manager").GetComponent<LevelManager>();
+            gameManager.EndGame(lm.menuTime, lm.gameTime);
         }
-    }
+    }*/
 }
