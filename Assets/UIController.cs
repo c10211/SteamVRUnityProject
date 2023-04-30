@@ -161,6 +161,8 @@ public class UIController : MonoBehaviour
             gm.playerDetails = (PlayerDetails)bf.Deserialize(fsIn);
 
             fsIn.Close();
+
+            Debug.Log("Data loaded for " + name);
         }
         else
         {
@@ -193,10 +195,13 @@ public class UIController : MonoBehaviour
             gm.playerDetails.timesPausedExtradiegetic = 0;
             gm.playerDetails.powerupUsagesDiegetic = 0;
             gm.playerDetails.powerupUsagesExtradiegetic = 0;
+
+            Debug.Log("New player " + name + " created");
         }
 
         if (!gm.LevelRunning)
         {
+            Debug.Log("Starting menu timer");
             gm.setDiegeticActive(gm.DiegeticActive);
             gm.StartMenuTimer();
         }

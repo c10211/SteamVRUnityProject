@@ -17,6 +17,8 @@ public class LevelManager : MonoBehaviour
     int lev, ord;
     private bool PowerupPrimed, PowerupActive, GamePaused, inTime;
 
+    public TextMeshPro DigitalClock1, DigitalClock2, DigitalClockColon;
+
     [Header("Diegetic pause menu detection")]
     [SerializeField]
     private Transform playerHead, grayscaleXTrigger;
@@ -53,8 +55,14 @@ public class LevelManager : MonoBehaviour
         foreach (GameObject o in IngredientPiles)
             o.SetActive(false);
 
-        foreach (GameObject o in DiegeticGameItems)
-            o.SetActive(false);
+        try
+        {
+            foreach (GameObject o in DiegeticGameItems)
+            {
+                o.SetActive(false);
+            }
+        }
+        catch { }
 
         foreach (GameObject o in ExtradiegeticGameItems)
             o.SetActive(false);
@@ -120,7 +128,7 @@ public class LevelManager : MonoBehaviour
 
         yield return new WaitForSecondsRealtime(3f);
 
-        LevelStop("Level " + lev + "finished");
+        LevelStop("Finished level ");
     }
 
     public void LevelStop(string reason)
@@ -128,6 +136,8 @@ public class LevelManager : MonoBehaviour
         Time.timeScale = 1f;
         Time.fixedDeltaTime = 0.02f;
         currentTimeScale = 1f;
+        DigitalClock1.text = "03";
+        DigitalClock2.text = "00";
 
         foreach (GameObject o in IngredientPiles)
             o.SetActive(false);
@@ -416,6 +426,14 @@ public class LevelManager : MonoBehaviour
                 string min = curMin > 9 ? curMin.ToString() : ("0" + curMin);
                 string sec = curSec > 9 ? curSec.ToString() : ("0" + curSec);
                 screen.SetTimeElapsed(min + ":" + sec);
+                {
+                    if (curSec % 2 == 1)
+                        DigitalClockColon.text = "";
+                    else
+                        DigitalClockColon.text = ":";
+                    DigitalClock1.text = min;
+                    DigitalClock2.text = sec;
+                }
                 yield return new WaitForSeconds(1f);
             }
             else
@@ -423,8 +441,15 @@ public class LevelManager : MonoBehaviour
                 yield return new WaitUntil(() => !GamePaused);
             }
         }
+        DigitalClock1.color = Color.red;
+        DigitalClock2.color = Color.red;
+        DigitalClockColon.color = Color.red;
         inTime = false;
         gameManager.playerDetails.keptToTimer = false;
+
+        DigitalClock1.gameObject.GetComponent<AudioSource>().Play();
+        yield return new WaitForSeconds(2f);
+        DigitalClock1.gameObject.GetComponent<AudioSource>().Stop();
     }
 
     /*private IEnumerator PauseMenuTimer()
