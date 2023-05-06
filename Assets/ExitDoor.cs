@@ -27,11 +27,12 @@ public class ExitDoor : MenuItem
         StartCoroutine(MoveTmp());
     }
 
-    private IEnumerator MoveTmp()
+    private IEnumerator MoveTmp(/*GameObject go*/)
     {
         Debug.Log("Here we go, " + toConfirm);
         if (!toConfirm)
         {
+            //GameObject 
             gameObject.transform.localPosition += new Vector3(-0.3f, 0f, 0f);
             toConfirm = true;
             handle1.SetActive(false);
@@ -60,11 +61,11 @@ public class ExitDoor : MenuItem
         }
     }
 
-    /*public void ExitLevelGoingOnce()
+    public void ExitLevelGoingOnce()
     {
         StartCoroutine(ExitLevelMoveTmp());
     }
-    /*private IEnumerator ExitLevelMoveTmp()
+    private IEnumerator ExitLevelMoveTmp()
     {
         Debug.Log("Here we go, " + toConfirm);
         if (!toConfirm)
@@ -85,7 +86,7 @@ public class ExitDoor : MenuItem
         else
         {
             LevelManager lm = GameObject.Find("Level Manager").GetComponent<LevelManager>();
-            gameManager.EndGame(lm.menuTime, lm.gameTime);
+            gameManager.EndGame(lm.menuTime, lm.gameTime, "Exit door level ");
         }
-    }*/
+    }
 }

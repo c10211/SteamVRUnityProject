@@ -82,6 +82,9 @@ public class LevelManager : MonoBehaviour
 
     public IEnumerator LevelStart(int lev)
     {
+        DigitalClock1.color = Color.white;
+        DigitalClock2.color = Color.white;
+        DigitalClockColon.color = Color.white;
         Debug.Log("Starting Level");
         this.lev = lev;
 

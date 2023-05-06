@@ -162,6 +162,8 @@ public class UIController : MonoBehaviour
 
             fsIn.Close();
 
+            File.AppendAllText("D:\\Collected Data\\" + gm.playerDetails.PlayerName + ".csv", "\n");
+
             Debug.Log("Data loaded for " + name);
         }
         else

@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -88,6 +89,8 @@ public class SandwichBuilder : MonoBehaviour
         bool good = levelManager.checkIngredients(listOfIngredients);
         if (good)
             StartCoroutine(SendSandwichToAether(getWholeSandwich(GetComponent<XRSocketInteractor>().interactablesSelected[0].transform.gameObject)));
+        else
+            GetComponent<AudioSource>().PlayOneShot(BadSound);
     }
 
     private string getIngredientString(GameObject go)
@@ -157,11 +160,12 @@ public class SandwichBuilder : MonoBehaviour
         try
         {
             Debug.Log(GoodSound.ToString());
-            Plate.transform.parent.GetComponent<AudioSource>().PlayOneShot(GoodSound);
+            /*Plate.transform.parent.*/GetComponent<AudioSource>().PlayOneShot(GoodSound);
         }
-        catch
+        catch (Exception e)
         {
             Debug.Log("Something wrong with playing good audio");
+            Debug.Log(e);
         }
         
         // Delete sandwich

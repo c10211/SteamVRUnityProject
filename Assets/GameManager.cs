@@ -134,12 +134,10 @@ public class GameManager : MonoBehaviour
         DiegeticActive = active;
         foreach (GameObject g in ExtradiegeticMenu)
         {
-            Debug.Log("Extra");
             g.SetActive(!active);
         }
         foreach (GameObject g in DiegeticMenu)
         {
-            Debug.Log("Diegetic");
             g.SetActive(active);
         }
 
